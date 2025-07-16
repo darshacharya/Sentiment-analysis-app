@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bert-sentiment-app-deployment
+  namespace: default
+  labels:
+    app: bert-sentiment-app
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bert-sentiment-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: bert-sentiment-app
+        version: v1
+    spec:
+      containers:
+      - name: bert-sentiment-app
+        image: bert-sentiment-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: FLASK_DEBUG
+          value: "false"
+        - name: TRANSFORMERS_CACHE
+          value: "/app/model_cache"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: model-cache
+          mountPath: /app/model_cache
+      volumes:
+      - name: model-cache
+        emptyDir:
+          sizeLimit: 5Gi
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bert-sentiment-app-service
+  namespace: default
+  labels:
+    app: bert-sentiment-app
+spec:
+  selector:
+    app: bert-sentiment-app
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+    nodePort: 30007
+    protocol: TCP
+  sessionAffinity: None

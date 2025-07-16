@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sentiment Analysis Tool</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            margin: 20px auto;
+            max-width: 900px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        
+        .content-area {
+            padding: 2rem;
+        }
+        
+        .input-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .input-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        }
+        
+        .result-section {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            display: none;
+        }
+        
+        .sentiment-result {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .batch-input {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 2px solid #e9ecef;
+            display: none;
+        }
+        
+        .batch-result {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-left: 4px solid #dee2e6;
+        }
+        
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+        
+        .btn-secondary-custom {
+            background: #6c757d;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary-custom:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+        }
+        
+        .emoji-large {
+            font-size: 3rem;
+            margin: 1rem 0;
+        }
+        
+        .confidence-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 10px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .mode-toggle {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .mode-btn {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1.5rem;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+            }
+            
+            .header, .content-area {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="header">
+                <h1><i class="fas fa-brain"></i> AI Sentiment Analysis Tool</h1>
+                <p class="mb-0">Powered by Pre-trained BERT Model</p>
+            </div>
+            
+            <div class="content-area">
+                <!-- Mode Toggle -->
+                <div class="mode-toggle">
+                    <button class="mode-btn active" onclick="switchMode('single')">Single Text</button>
+                    <button class="mode-btn" onclick="switchMode('batch')">Batch Analysis</button>
+                    <button class="mode-btn" onclick="switchMode('csv')">CSV Upload</button>
+                </div>
+                
+                <!-- Single Text Analysis -->
+                <div id="single-mode">
+                    <div class="input-section">
+                        <h4><i class="fas fa-edit"></i> Enter Text to Analyze</h4>
+                        <div class="mb-3">
+                            <textarea 
+                                id="textInput" 
+                                class="form-control" 
+                                rows="4" 
+                                placeholder="Type your text here... (e.g., 'I absolutely love this movie!')"
+                                maxlength="500">
+                            </textarea>
+                            <div class="form-text">
+                                <span id="charCount">0</span>/500 characters
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <button class="btn btn-custom" onclick="analyzeSentiment()">
+                                <i class="fas fa-search"></i> Analyze Sentiment
+                            </button>
+                            <button class="btn btn-secondary-custom" onclick="clearInput()">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div class="loading" id="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Analyzing sentiment...</p>
+                    </div>
+                    
+                    <!-- Results Section -->
+                    <div class="result-section" id="resultSection">
+                        <h4><i class="fas fa-chart-line"></i> Analysis Results</h4>
+                        <div id="resultContent"></div>
+                    </div>
+                </div>
+                
+                <!-- Batch Analysis -->
+                <div id="batch-mode" class="batch-input">
+                    <h4><i class="fas fa-list"></i> Batch Analysis</h4>
+                    <p class="text-muted">Enter multiple texts, one per line (maximum 10 texts)</p>
+                    
+                    <div class="mb-3">
+                        <textarea 
+                            id="batchInput" 
+                            class="form-control" 
+                            rows="8" 
+                            placeholder="Enter multiple texts, one per line:&#10;I love this product!&#10;This service is terrible.&#10;It's okay, nothing special.">
+                        </textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <button class="btn btn-custom" onclick="analyzeBatch()">
+                            <i class="fas fa-search"></i> Analyze All
+                        </button>
+                        <button class="btn btn-secondary-custom" onclick="clearBatch()">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                    
+                    <div class="loading" id="batchLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Analyzing batch...</p>
+                    </div>
+                    
+                    <div id="batchResults" class="mt-3"></div>
+                </div>
+                
+                <!-- CSV Upload Section -->
+                <div id="csv-mode" class="batch-input">
+                    <h4><i class="fas fa-file-upload"></i> Upload CSV for Analysis</h4>
+                    <p class="text-muted">Upload a CSV file with a "text" column to analyze sentiment for multiple texts at once.</p>
+                    <div class="alert alert-info">
+                        <strong>CSV Format Requirements:</strong>
+                        <ul class="mb-0">
+                            <li>Must contain a column named "text"</li>
+                            <li>Text containing commas should be quoted</li>
+                            <li>Use UTF-8 encoding</li>
+                            <li>Example: <code>text<br>"I love this product!"<br>"This is terrible."</code></li>
+                        </ul>
+                    </div>
+                    <form id="csvUploadForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <input type="file" id="csvInput" accept=".csv" class="form-control" />
+                        </div>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                            <button type="button" class="btn btn-custom" onclick="uploadCSV()">
+                                <i class="fas fa-upload"></i> Upload and Analyze
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="loading" id="csvLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Processing CSV file...</p>
+                    </div>
+                </div>
+
+                <!-- Example Texts -->
+                <div class="mt-4">
+                    <h5><i class="fas fa-lightbulb"></i> Try These Examples:</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-success btn-sm w-100" onclick="setExample('I absolutely love this movie! It was fantastic.')">
+                                Positive Example
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-danger btn-sm w-100" onclick="setExample('This is terrible and I hate it so much.')">
+                                Negative Example
+                            </button>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="setExample('It is okay, nothing special about it.')">
+                                Neutral Example
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Character counter
+        document.getElementById('textInput').addEventListener('input', function() {
+            const charCount = this.value.length;
+            document.getElementById('charCount').textContent = charCount;
+            
+            if (charCount > 450) {
+                document.getElementById('charCount').style.color = '#dc3545';
+            } else {
+                document.getElementById('charCount').style.color = '#6c757d';
+            }
+        });
+        
+        // Mode switching
+        function switchMode(mode) {
+            const singleMode = document.getElementById('single-mode');
+            const batchMode = document.getElementById('batch-mode');
+            const csvMode = document.getElementById('csv-mode');
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            
+            modeButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Hide all modes first
+            singleMode.style.display = 'none';
+            batchMode.style.display = 'none';
+            csvMode.style.display = 'none';
+            
+            if (mode === 'single') {
+                singleMode.style.display = 'block';
+                modeButtons[0].classList.add('active');
+            } else if (mode === 'batch') {
+                batchMode.style.display = 'block';
+                modeButtons[1].classList.add('active');
+            } else if (mode === 'csv') {
+                csvMode.style.display = 'block';
+                modeButtons[2].classList.add('active');
+            }
+        }
+        
+        // Single text analysis
+        async function analyzeSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                alert('Please enter some text to analyze.');
+                return;
+            }
+            
+            const loading = document.getElementById('loading');
+            const resultSection = document.getElementById('resultSection');
+            
+            loading.style.display = 'block';
+            resultSection.style.display = 'none';
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResult(data);
+                } else {
+                    displayError(data.error);
+                }
+            } catch (error) {
+                displayError('Network error. Please try again.');
+            }
+            
+            loading.style.display = 'none';
+        }
+        
+        // Display single result
+        function displayResult(data) {
+            const resultContent = document.getElementById('resultContent');
+            const resultSection = document.getElementById('resultSection');
+            
+            const confidenceWidth = Math.max(data.confidence, 10);
+            
+            resultContent.innerHTML = `
+                <div class="sentiment-result" style="background-color: ${data.color}20; border: 2px solid ${data.color};">
+                    <div class="emoji-large">${data.emoji}</div>
+                    <div style="color: ${data.color};">
+                        Sentiment: <strong>${data.sentiment}</strong>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="background-color: ${data.color}; width: ${confidenceWidth}%;"></div>
+                    </div>
+                    <div style="color: #6c757d;">Confidence: ${data.confidence}%</div>
+                </div>
+                <div class="mt-3">
+                    <strong>Analyzed Text:</strong>
+                    <div class="p-2 bg-light rounded mt-2" style="border-left: 4px solid ${data.color};">
+                        "${data.text}"
+                    </div>
+                </div>
+            `;
+            
+            resultSection.style.display = 'block';
+        }
+        
+        // Batch analysis
+        async function analyzeBatch() {
+            const batchText = document.getElementById('batchInput').value.trim();
+            
+            if (!batchText) {
+                alert('Please enter texts to analyze.');
+                return;
+            }
+            
+            const texts = batchText.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+            
+            if (texts.length === 0) {
+                alert('Please enter valid texts.');
+                return;
+            }
+            
+            if (texts.length > 10) {
+                alert('Maximum 10 texts allowed for batch analysis.');
+                return;
+            }
+            
+            const loading = document.getElementById('batchLoading');
+            const resultsDiv = document.getElementById('batchResults');
+            
+            loading.style.display = 'block';
+            resultsDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/analyze_batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ texts: texts })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayBatchResults(data.results);
+                } else {
+                    displayError(data.error);
+                }
+            } catch (error) {
+                displayError('Network error. Please try again.');
+            }
+            
+            loading.style.display = 'none';
+        }
+        
+        // Display batch results
+        function displayBatchResults(results) {
+            const resultsDiv = document.getElementById('batchResults');
+            
+            let html = '<h5><i class="fas fa-chart-bar"></i> Batch Analysis Results</h5>';
+            
+            results.forEach((result, index) => {
+                if (result.error) {
+                    html += `
+                        <div class="batch-result" style="border-left-color: #dc3545;">
+                            <div class="text-danger">
+                                <strong>Text ${index + 1}:</strong> ${result.error}
+                            </div>
+                            <div class="text-muted mt-1">"${result.text}"</div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="batch-result" style="border-left-color: ${result.color};">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Text ${index + 1}:</strong>
+                                    <span style="color: ${result.color};">
+                                        ${result.sentiment} ${result.emoji}
+                                    </span>
+                                </div>
+                                <div class="text-muted">${result.confidence}%</div>
+                            </div>
+                            <div class="text-muted mt-1">"${result.text}"</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Display error
+        function displayError(message) {
+            const resultContent = document.getElementById('resultContent');
+            const resultSection = document.getElementById('resultSection');
+            
+            resultContent.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+            
+            resultSection.style.display = 'block';
+        }
+        
+        // Utility functions
+        function clearInput() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('resultSection').style.display = 'none';
+        }
+        
+        function clearBatch() {
+            document.getElementById('batchInput').value = '';
+            document.getElementById('batchResults').innerHTML = '';
+        }
+        
+        function setExample(text) {
+            switchMode('single');
+            document.getElementById('textInput').value = text;
+            document.getElementById('charCount').textContent = text.length;
+        }
+        
+        // CSV Upload function
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csvInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+            
+            if (!file.name.endsWith('.csv')) {
+                alert('Please select a valid CSV file.');
+                return;
+            }
+            
+            const loading = document.getElementById('csvLoading');
+            loading.style.display = 'block';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/upload_csv', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    // If successful, the response will be a CSV file download
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'sentiment_analysis_results.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert('CSV file processed successfully! Results downloaded.');
+                } else {
+                    const errorData = await response.json();
+                    alert('Error: ' + errorData.error);
+                }
+            } catch (error) {
+                alert('Network error. Please try again.');
+            }
+            
+            loading.style.display = 'none';
+        }
+        
+        // Enter key handler
+        document.getElementById('textInput').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && event.ctrlKey) {
+                analyzeSentiment();
+            }
+        });
+    </script>
+</body>
+</html>
